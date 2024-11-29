@@ -10,10 +10,8 @@ class DocumentVectorizer:
         
     def compute_doc_matrix(self, directory: str) -> np.matrix:
         doc_vectors = []
-        for name in os.listdir(directory):
-            if not name.endswith(".txt"):
-                continue
-            with open(os.path.join(directory, name)) as file:
+        for i in range(1, 1558):
+            with open(f"{directory}/output_{i}.txt") as file:
                 text = file.read()
                 doc_vector = self.model.encode(text)
                 doc_vectors.append(doc_vector)
