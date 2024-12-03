@@ -73,14 +73,14 @@ if __name__ == "__main__":
 
     if bench:
         # benchmark
-        queryProcessor = QueryProcessor("doc_vectors.npz", "all-MiniLM-L6-v2")
-        queries = pd.read_csv("small_queries.csv")
+        queryProcessor = QueryProcessor("doc_vectors.npy", "all-MiniLM-L6-v2")
+        queries = pd.read_csv("dev_small_queries.csv")
         query_ids = queries["Query number"]
 
         avg_precisions = []
         avg_recalls = []
 
-        expected_results = pd.read_csv("results_small.csv")
+        expected_results = pd.read_csv("dev_query_results_small.csv")
 
         for i, (query_id, query) in tqdm(enumerate(queries.itertuples(index=False)), total = len(queries), desc="Running Benchmark..."):
             for ki, k in enumerate([3, 10]):

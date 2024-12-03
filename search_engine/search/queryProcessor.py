@@ -5,21 +5,16 @@ from sentence_transformers import SentenceTransformer
 
 class QueryProcessor:
     def __init__(self, doc_vectors_path: str, model: str):
-        doc_matrix = sparse.load_npz(doc_vectors_path).toarray()
-        norms = np.linalg.norm(doc_matrix, axis=0, keepdims=True)
-        self.doc_matrix = doc_matrix / norms
+        self.doc_matrix = np.load(doc_vectors_path)
         self.model = SentenceTransformer(model)
 
     def compute_query_vector(self, query: str) -> np.array:
-        query_vector =  np.array(self.model.encode(query))
-        norm = np.linalg.norm(query_vector, ord=2)
-        if norm > 0:
-            query_vector = query_vector / norm
+        query_vector =  self.model.encode(query, convert_to_numpy=True)
         return query_vector
 
     def compute_scores(self, query: str):
         query_vector = self.compute_query_vector(query)
-        scores = np.dot(query_vector, self.doc_matrix)
+        scores = np.matmul(self.doc_matrix, query_vector)
         return scores
     
     def process_query(self, query: str, k: int):

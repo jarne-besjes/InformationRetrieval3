@@ -3,6 +3,7 @@ from sentence_transformers import SentenceTransformer
 from scipy import sparse
 import os
 from tqdm import tqdm
+import time
 
 def count_txt_files_in_folder(folder_path):
     with os.scandir(folder_path) as entries:
@@ -13,19 +14,20 @@ class DocumentVectorizer:
     def __init__(self, model: str, out_path: str):
         self.model = SentenceTransformer(model)
         self.out_path = out_path
-        
+
     def compute_doc_matrix(self, directory: str) -> np.matrix:
-        doc_vectors = []
+        documents = []
         document_count = count_txt_files_in_folder(directory)
         for i in tqdm(range(1, document_count+1), desc="Reading documents..."):
             with open(f"{directory}/output_{i}.txt") as file:
                 text = file.read()
-                doc_vector = self.model.encode(text)
-                doc_vectors.append(doc_vector)
-        doc_vectors = np.stack(doc_vectors, axis=1)
-        doc_vectors = sparse.csr_matrix(doc_vectors)
-        sparse.save_npz(self.out_path, doc_vectors)
+                documents.append(text)
+        print("Encoding documents...")
+        encoding_start_time = time.time()
+        document_embeddings = self.model.encode(documents, convert_to_numpy=True)
+        print(f"Done encoding documents. Elapsed: {(time.time() - encoding_start_time):.2f} seconds")
+        np.save(f"{self.out_path}.npy", document_embeddings)
 
 if __name__ == "__main__":
     vectorizer = DocumentVectorizer("all-MiniLM-L6-v2", "doc_vectors")
-    vectorizer.compute_doc_matrix("full_docs_small")
+    vectorizer.compute_doc_matrix('full_docs_small')
