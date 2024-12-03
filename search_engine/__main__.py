@@ -28,7 +28,7 @@ def calculate_precision_at_k(retrieved, relevant, k):
         if i <= len(retrieved) and retrieved[i - 1] in relevant:
             count += 1
             sum += count / i
-    return sum / count if count > 0 else -1
+    return sum / count if count > 0 else 0
 
 
 def calculate_recall_at_k(retrieved, relevant, k):
@@ -38,7 +38,7 @@ def calculate_recall_at_k(retrieved, relevant, k):
         if i <= len(retrieved) and retrieved[i - 1] in relevant:
             count += 1
             sum += count / len(relevant)
-    return sum / count if count > 0 else -1
+    return sum / count if count > 0 else 0
 
 if __name__ == "__main__":
     try:
@@ -74,34 +74,58 @@ if __name__ == "__main__":
     if bench:
         # benchmark
         queryProcessor = QueryProcessor("doc_vectors.npy", "all-MiniLM-L6-v2")
-        queries = pd.read_csv("dev_small_queries.csv")
-        query_ids = queries["Query number"]
-
-        avg_precisions = []
-        avg_recalls = []
-
+        #queryProcessor = QueryProcessor("doc_vectors_BIG.npy", "all-MiniLM-L6-v2")
+        queries_csv = pd.read_csv("dev_small_queries.csv")
+        # queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
+        query_ids = queries_csv["Query number"]
         expected_results = pd.read_csv("dev_query_results_small.csv")
+        # expected_results = pd.read_csv("dev_query_results.csv")
 
-        for i, (query_id, query) in tqdm(enumerate(queries.itertuples(index=False)), total = len(queries), desc="Running Benchmark..."):
+        queries : list[tuple[int,str]] = []
+        for (query_id, query) in queries_csv.itertuples(index=False):
+            queries.append((query_id, query))
+        # sort the queries based on query_id
+        queries.sort(key=lambda p: p[0])
+
+        print("Scoring the documents...")
+        document_rankings = queryProcessor.process_queries([query for (query_id, query) in queries], k=10)
+
+        avg_precisions = [[], []]
+        avg_recalls = [[], []]
+
+        for query_i in tqdm(range(0, len(queries)), desc="Calculating precisions and recalls..."):
+            query_id = queries[query_i][0]
             for ki, k in enumerate([3, 10]):
-                precisions = []
-                recalls = []
-                retrieved = queryProcessor.process_query(query, k)
-                for i in range(k):
-                    relevant = expected_results[expected_results["Query_number"] == query_id]["doc_number"].to_list()
-                    precision = calculate_precision_at_k(retrieved[:i], relevant, k)
-                    recall = calculate_recall_at_k(retrieved[:i], relevant, k)
-                    if precision != -1:
-                        precisions.append(precision)
-                    if recall != -1:
-                        recalls.append(recall)
-                avg_precisions.append(np.mean(precisions))
-                avg_recalls.append(np.mean(recalls))
-            
+                relevant = expected_results[expected_results["Query_number"] == query_id]["doc_number"].to_list()
+                retrieved = document_rankings[query_i][:k]
+                apk = calculate_precision_at_k(retrieved, relevant, k=k)
+                ark = calculate_recall_at_k(retrieved, relevant, k=k)
+                avg_precisions[ki].append(apk)
+                avg_recalls[ki].append(ark)
+
         for i in range(2):
             print(f"Mean avg precision at {3 if i == 0 else 10}: ", np.mean(avg_precisions[i]))
             print(f"Mean avg recall at {3 if i == 0 else 10}: ", np.mean(avg_recalls[i]))
 
+        # for i, (query_id, query) in tqdm(enumerate(queries.itertuples(index=False)), total = len(queries), desc="Running Benchmark..."):
+        #     for ki, k in enumerate([3, 10]):
+        #         precisions = []
+        #         recalls = []
+        #         retrieved = queryProcessor.process_query(query, k)
+        #         for i in range(k):
+        #             relevant = expected_results[expected_results["Query_number"] == query_id]["doc_number"].to_list()
+        #             precision = calculate_precision_at_k(retrieved[:i], relevant, k)
+        #             recall = calculate_recall_at_k(retrieved[:i], relevant, k)
+        #             if precision != -1:
+        #                 precisions.append(precision)
+        #             if recall != -1:
+        #                 recalls.append(recall)
+        #         avg_precisions.append(np.mean(precisions))
+        #         avg_recalls.append(np.mean(recalls))
+            
+        # for i in range(2):
+        #     print(f"Mean avg precision at {3 if i == 0 else 10}: ", np.mean(avg_precisions[i]))
+        #     print(f"Mean avg recall at {3 if i == 0 else 10}: ", np.mean(avg_recalls[i]))
     else:
         # search
         queryProcessor = QueryProcessor(index_folder)

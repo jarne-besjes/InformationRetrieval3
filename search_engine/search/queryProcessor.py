@@ -22,6 +22,18 @@ class QueryProcessor:
         best = np.argsort(scores)[-k:][::-1]
         return [int(doc+1) for doc in best]
     
+    # Returns a matrix containing the document rankings for each query
+    # A document ranking for a query is stored in a row
+    # e.g. result[0] is the ranking for queries[0]
+    def process_queries(self, queries: list[str], k: int):
+        query_embeddings = self.model.encode(queries, convert_to_numpy=True)
+        query_embeddings = query_embeddings.T # put the query vectors in columns
+        scores_matrix = np.matmul(self.doc_matrix, query_embeddings)
+        sorted = np.argsort(scores_matrix, axis=0)
+        topk = sorted[-k:][::-1]
+        result = topk + np.ones(topk.shape, topk.dtype)
+        return result.T
+    
 if __name__ == "__main__":
     queries = pd.read_csv("small_queries.csv")
     results = pd.read_csv("results_small.csv")
