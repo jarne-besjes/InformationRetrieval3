@@ -89,6 +89,7 @@ if __name__ == "__main__":
 
         print("Scoring the documents...")
         document_rankings = queryProcessor.process_queries([query for (query_id, query) in queries], k=10)
+        # document_rankings = queryProcessor.process_queries_using_lib_similarity([query for (query_id, query) in queries], k=10)
 
         avg_precisions = [[], []]
         avg_recalls = [[], []]
