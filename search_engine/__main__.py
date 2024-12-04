@@ -65,10 +65,10 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if not args.no_index:
-        # Check if the inverted index folder exists and is not older than 1 day
-        if not os.path.exists("./" + index_folder) :
+        if not os.path.exists("./" + "doc_vectors.npy"):
             print('Indexing...', file=sys.stderr)
-            #indexer.run_indexer(docs_folder)
+            vectorizer = documentVectorizer.DocumentVectorizer("all-MiniLM-L6-v2", "doc_vectors")
+            vectorizer.compute_doc_matrix(docs_folder)
             print('Indexing done', file=sys.stderr)
 
     if bench:
