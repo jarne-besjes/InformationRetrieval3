@@ -7,8 +7,10 @@ import os
 import sys
 import time
 import argparse
+
+from sympy import Q
 import search_engine.preprocessing.documentVectorizer as documentVectorizer
-from search_engine.search.queryProcessor import QueryProcessor
+from search_engine.search.queryProcessor import QueryProcessor, QueryProcessorClustering
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -74,7 +76,8 @@ if __name__ == "__main__":
 
     if bench:
         # benchmark
-        queryProcessor = QueryProcessor("doc_vectors.npy", "all-MiniLM-L6-v2")
+        # queryProcessor = QueryProcessor("doc_vectors.npy", "all-MiniLM-L6-v2")
+        queryProcessor = QueryProcessorClustering("doc_vectors_centroids.npy", "all-MiniLM-L6-v2")
         #queryProcessor = QueryProcessor("doc_vectors_BIG.npy", "all-MiniLM-L6-v2")
         queries_csv = pd.read_csv("dev_small_queries.csv")
         # queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
@@ -89,7 +92,7 @@ if __name__ == "__main__":
         queries.sort(key=lambda p: p[0])
 
         print("Scoring the documents...")
-        document_rankings = queryProcessor.process_queries([query for (query_id, query) in queries], k=10)
+        # document_rankings = queryProcessor.process_queries([query for (query_id, query) in queries], k=10)
         # document_rankings = queryProcessor.process_queries_using_lib_similarity([query for (query_id, query) in queries], k=10)
 
         avg_precisions = [[], []]
@@ -97,9 +100,11 @@ if __name__ == "__main__":
 
         for query_i in tqdm(range(0, len(queries)), desc="Calculating precisions and recalls..."):
             query_id = queries[query_i][0]
+            query_str = queries[query_i][1]
+            retrieved = queryProcessor.process_query(query_str, k=10)
             for ki, k in enumerate([3, 10]):
                 relevant = expected_results[expected_results["Query_number"] == query_id]["doc_number"].to_list()
-                retrieved = document_rankings[query_i][:k]
+                # retrieved = document_rankings[query_i][:k]
                 apk = calculate_precision_at_k(retrieved, relevant, k=k)
                 ark = calculate_recall_at_k(retrieved, relevant, k=k)
                 avg_precisions[ki].append(apk)

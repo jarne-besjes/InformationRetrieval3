@@ -47,7 +47,34 @@ class QueryProcessor:
         def similarity_func(document_embeddings, query_embeddings):
             return self.model.similarity(query_embeddings, document_embeddings).numpy().T
         return self._process_queries(queries, k, similarity_func)
+
+class QueryProcessorClustering:
+    def __init__(self, centroids_path: str, model: str):
+        self.centroid_matrix = np.load(centroids_path)
+        self.model = SentenceTransformer(model)
+        cluster_count = self.centroid_matrix.shape[0]
+        self.clusters = []
+        self.cluster_doc_ids = []
+        for ci in range(0, cluster_count):
+            self.clusters.append(np.load(f"doc_vectors_cluster_{ci}.npy"))
+            self.cluster_doc_ids.append(np.load(f"doc_vectors_cluster_doc_ids_{ci}.npy"))
     
+    def process_query(self, query: str, k: int):
+        query_embedding = self.model.encode(query, convert_to_numpy=True).T
+        centroid_scores_matrix = np.matmul(self.centroid_matrix, query_embedding)
+        centroid_scores_sorted = np.argsort(centroid_scores_matrix, axis=0)
+        t = 3 # the number of candidate clusters
+        topt_centroids = centroid_scores_sorted[-t:][::-1]
+        candidate_document_vectors = np.vstack([self.clusters[ci] for ci in topt_centroids])
+        scores_matrix = np.matmul(candidate_document_vectors, query_embedding)
+        doc_scores_sorted = np.argsort(scores_matrix, axis=0)
+        topk_documents_local = doc_scores_sorted[-k:][::-1]
+        # map the "cluster-local" document indexes to the "global" document indexes
+        doc_ids = np.vstack([self.cluster_doc_ids[ci].T for ci in topt_centroids]).ravel()
+        topk_documents = doc_ids[topk_documents_local]
+        result = topk_documents + np.ones(topk_documents.shape, topk_documents.dtype)
+        return result
+
 if __name__ == "__main__":
     queries = pd.read_csv("small_queries.csv")
     results = pd.read_csv("results_small.csv")
