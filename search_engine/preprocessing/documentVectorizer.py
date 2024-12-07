@@ -37,13 +37,15 @@ class DocumentVectorizer:
         centroids = kmeans.cluster_centers_
         print(f"Done clustering. Elapsed: {(time.time() - clustering_start_time):.2f} seconds")
 
-        np.save(f"{self.out_path}_centroids.npy", centroids)
+        os.makedirs(self.out_path, exist_ok=True)
+        
+        np.save(f"{self.out_path}/centroids.npy", centroids)
 
         for ci in range(0, centroids.shape[0]):
             cluster_doc_ids = np.where(cluster_assignments == ci)
             cluster_vecs = document_embeddings[cluster_doc_ids]
-            np.save(f"{self.out_path}_cluster_{ci}.npy", cluster_vecs)
-            np.save(f"{self.out_path}_cluster_doc_ids_{ci}.npy", cluster_doc_ids)
+            np.save(f"{self.out_path}/cluster_{ci}.npy", cluster_vecs)
+            np.save(f"{self.out_path}/cluster_doc_ids_{ci}.npy", cluster_doc_ids)
         
         # np.save(f"{self.out_path}.npy", document_embeddings)
 

@@ -49,15 +49,15 @@ class QueryProcessor:
         return self._process_queries(queries, k, similarity_func)
 
 class QueryProcessorClustering:
-    def __init__(self, centroids_path: str, model: str):
-        self.centroid_matrix = np.load(centroids_path)
+    def __init__(self, index_path: str, model: str):
+        self.centroid_matrix = np.load(f"{index_path}/centroids.npy")
         self.model = SentenceTransformer(model)
         cluster_count = self.centroid_matrix.shape[0]
         self.clusters = []
         self.cluster_doc_ids = []
         for ci in range(0, cluster_count):
-            self.clusters.append(np.load(f"doc_vectors_cluster_{ci}.npy"))
-            self.cluster_doc_ids.append(np.load(f"doc_vectors_cluster_doc_ids_{ci}.npy"))
+            self.clusters.append(np.load(f"{index_path}/cluster_{ci}.npy"))
+            self.cluster_doc_ids.append(np.load(f"{index_path}/cluster_doc_ids_{ci}.npy"))
     
     def process_query(self, query: str, k: int):
         query_embedding = self.model.encode(query, convert_to_numpy=True).T

@@ -77,7 +77,7 @@ if __name__ == "__main__":
     if bench:
         # benchmark
         # queryProcessor = QueryProcessor("doc_vectors.npy", "all-MiniLM-L6-v2")
-        queryProcessor = QueryProcessorClustering("doc_vectors_centroids.npy", "all-MiniLM-L6-v2")
+        queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2")
         #queryProcessor = QueryProcessor("doc_vectors_BIG.npy", "all-MiniLM-L6-v2")
         queries_csv = pd.read_csv("dev_small_queries.csv")
         # queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
