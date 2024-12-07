@@ -68,7 +68,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if not args.no_index:
-        if not os.path.exists("./" + "doc_vectors.npy") or args.reindex:
+        if not os.path.exists("./" + "doc_vectors") or args.reindex:
             print('Indexing...', file=sys.stderr)
             vectorizer = documentVectorizer.DocumentVectorizer("all-MiniLM-L6-v2", "doc_vectors")
             vectorizer.compute_doc_matrix(docs_folder)
