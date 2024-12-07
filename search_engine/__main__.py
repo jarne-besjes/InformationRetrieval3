@@ -23,6 +23,7 @@ argparser.add_argument('--no-index', action='store_true', help='Do not index the
 argparser.add_argument('--reindex', action='store_true', help='Overwrite the existing index')
 argparser.add_argument('--docs-folder', type=str, help='The location of the folder where all documents are stored', required=True)
 argparser.add_argument('--mode', type=str, help='Select mode: search or bench', required=True)
+argparser.add_argument('--clustering', action='store_true', help='Use clustering (for preprocessing & querying)')
 
 def calculate_precision_at_k(retrieved, relevant, k):
     count = 0
@@ -68,32 +69,34 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if not args.no_index:
-        if not os.path.exists("./" + "doc_vectors") or args.reindex:
-            print('Indexing...', file=sys.stderr)
-            vectorizer = documentVectorizer.DocumentVectorizer("all-MiniLM-L6-v2", "doc_vectors")
-            vectorizer.compute_doc_matrix(docs_folder)
-            print('Indexing done', file=sys.stderr)
+        output_path = "./doc_vectors"
+        if not os.path.exists(output_path) or args.reindex:
+            print('Preprocessing documents...', file=sys.stderr)
+            vectorizer = documentVectorizer.DocumentVectorizer("all-MiniLM-L6-v2", output_path)
+            vectorizer.compute_doc_matrix(docs_folder, clustering=args.clustering)
+            print('Preprocessing done', file=sys.stderr)
 
     if bench:
-        # benchmark
-        # queryProcessor = QueryProcessor("doc_vectors.npy", "all-MiniLM-L6-v2")
-        queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2")
-        #queryProcessor = QueryProcessor("doc_vectors_BIG.npy", "all-MiniLM-L6-v2")
-        queries_csv = pd.read_csv("dev_small_queries.csv")
-        # queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
+        if args.clustering:
+            # queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2")
+            queryProcessor = QueryProcessorClustering("doc_vectors_BIG", "all-MiniLM-L6-v2")
+        else:
+            queryProcessor = QueryProcessor("doc_vectors.npy", "all-MiniLM-L6-v2")
+
+        # queries_csv = pd.read_csv("dev_small_queries.csv")
+        queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
         query_ids = queries_csv["Query number"]
-        expected_results = pd.read_csv("dev_query_results_small.csv")
-        # expected_results = pd.read_csv("dev_query_results.csv")
+        # expected_results = pd.read_csv("dev_query_results_small.csv")
+        expected_results = pd.read_csv("dev_query_results.csv")
 
         queries : list[tuple[int,str]] = []
         for (query_id, query) in queries_csv.itertuples(index=False):
             queries.append((query_id, query))
-        # sort the queries based on query_id
+        # NOTE: sort the queries based on query_id to ensure deterministic query order across multiple runs
         queries.sort(key=lambda p: p[0])
 
         print("Scoring the documents...")
-        # document_rankings = queryProcessor.process_queries([query for (query_id, query) in queries], k=10)
-        # document_rankings = queryProcessor.process_queries_using_lib_similarity([query for (query_id, query) in queries], k=10)
+        queryProcessor.process_queries([query for (query_id, query) in queries], k=10)
 
         avg_precisions = [[], []]
         avg_recalls = [[], []]
@@ -101,10 +104,10 @@ if __name__ == "__main__":
         for query_i in tqdm(range(0, len(queries)), desc="Calculating precisions and recalls..."):
             query_id = queries[query_i][0]
             query_str = queries[query_i][1]
-            retrieved = queryProcessor.process_query(query_str, k=10)
+            retrieved_maxk = queryProcessor.get_query_top_docs(query_i)
             for ki, k in enumerate([3, 10]):
                 relevant = expected_results[expected_results["Query_number"] == query_id]["doc_number"].to_list()
-                # retrieved = document_rankings[query_i][:k]
+                retrieved = retrieved_maxk[:k]
                 apk = calculate_precision_at_k(retrieved, relevant, k=k)
                 ark = calculate_recall_at_k(retrieved, relevant, k=k)
                 avg_precisions[ki].append(apk)
@@ -113,26 +116,6 @@ if __name__ == "__main__":
         for i in range(2):
             print(f"Mean avg precision at {3 if i == 0 else 10}: ", np.mean(avg_precisions[i]))
             print(f"Mean avg recall at {3 if i == 0 else 10}: ", np.mean(avg_recalls[i]))
-
-        # for i, (query_id, query) in tqdm(enumerate(queries.itertuples(index=False)), total = len(queries), desc="Running Benchmark..."):
-        #     for ki, k in enumerate([3, 10]):
-        #         precisions = []
-        #         recalls = []
-        #         retrieved = queryProcessor.process_query(query, k)
-        #         for i in range(k):
-        #             relevant = expected_results[expected_results["Query_number"] == query_id]["doc_number"].to_list()
-        #             precision = calculate_precision_at_k(retrieved[:i], relevant, k)
-        #             recall = calculate_recall_at_k(retrieved[:i], relevant, k)
-        #             if precision != -1:
-        #                 precisions.append(precision)
-        #             if recall != -1:
-        #                 recalls.append(recall)
-        #         avg_precisions.append(np.mean(precisions))
-        #         avg_recalls.append(np.mean(recalls))
-            
-        # for i in range(2):
-        #     print(f"Mean avg precision at {3 if i == 0 else 10}: ", np.mean(avg_precisions[i]))
-        #     print(f"Mean avg recall at {3 if i == 0 else 10}: ", np.mean(avg_recalls[i]))
     else:
         # search
         queryProcessor = QueryProcessor(index_folder)
