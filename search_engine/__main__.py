@@ -18,6 +18,7 @@ argparser = argparse.ArgumentParser(description='Information retrieval project 3
 argparser.add_argument('--query', type=str, help='The query to search for')
 argparser.add_argument('-n', type=int, default=10, help='The number of results to return')
 argparser.add_argument('--no-index', action='store_true', help='Do not index the documents')
+argparser.add_argument('--reindex', action='store_true', help='Overwrite the existing index')
 argparser.add_argument('--docs-folder', type=str, help='The location of the folder where all documents are stored', required=True)
 argparser.add_argument('--mode', type=str, help='Select mode: search or bench', required=True)
 
@@ -65,7 +66,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if not args.no_index:
-        if not os.path.exists("./" + "doc_vectors.npy"):
+        if not os.path.exists("./" + "doc_vectors.npy") or args.reindex:
             print('Indexing...', file=sys.stderr)
             vectorizer = documentVectorizer.DocumentVectorizer("all-MiniLM-L6-v2", "doc_vectors")
             vectorizer.compute_doc_matrix(docs_folder)
