@@ -78,16 +78,14 @@ if __name__ == "__main__":
 
     if bench:
         if args.clustering:
-            # queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2")
-            queryProcessor = QueryProcessorClustering("doc_vectors_BIG", "all-MiniLM-L6-v2")
+            queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
+            # queryProcessor = QueryProcessorClustering("doc_vectors_BIG", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
+            queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
+            expected_results = pd.read_csv("dev_query_results.csv")
         else:
             queryProcessor = QueryProcessor("doc_vectors.npy", "all-MiniLM-L6-v2")
-
-        # queries_csv = pd.read_csv("dev_small_queries.csv")
-        queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
-        query_ids = queries_csv["Query number"]
-        # expected_results = pd.read_csv("dev_query_results_small.csv")
-        expected_results = pd.read_csv("dev_query_results.csv")
+            queries_csv = pd.read_csv("dev_small_queries.csv")
+            expected_results = pd.read_csv("dev_query_results_small.csv")
 
         queries : list[tuple[int,str]] = []
         for (query_id, query) in queries_csv.itertuples(index=False):

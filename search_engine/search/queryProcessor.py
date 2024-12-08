@@ -61,11 +61,12 @@ class QueryProcessor:
         return self._process_queries(queries, k, similarity_func)
 
 class QueryProcessorClustering:
-    def __init__(self, index_path: str, model: str):
+    def __init__(self, index_path: str, model: str, clusters_to_evaluate: int = 3):
         self.centroid_matrix = np.load(f"{index_path}/centroids.npy")
         self.model = SentenceTransformer(model)
         self.queries = None # filled in with process_queries
         self.k = None # filled in with process_queries
+        self.t = clusters_to_evaluate
         cluster_count = self.centroid_matrix.shape[0]
         self.clusters = []
         self.cluster_doc_ids = []
@@ -73,14 +74,11 @@ class QueryProcessorClustering:
             self.clusters.append(np.load(f"{index_path}/cluster_{ci}.npy"))
             self.cluster_doc_ids.append(np.load(f"{index_path}/cluster_doc_ids_{ci}.npy"))
     
-    def _process_query(self, query: str, k: int):
-        query_embedding = self.model.encode(query, convert_to_numpy=True).T
-        centroid_scores_matrix = np.matmul(self.centroid_matrix, query_embedding)
-        centroid_scores_sorted = np.argsort(centroid_scores_matrix, axis=0)
-        t = 4 # the number of candidate clusters
-        topt_centroids = centroid_scores_sorted[-t:][::-1]
+    def _process_query(self, query_index: int, k: int):
+        query_embedding = self.query_embeddings[query_index]
+        topt_centroids = self.top_centroids_matrix[query_index]
         candidate_document_vectors = np.vstack([self.clusters[ci] for ci in topt_centroids])
-        scores_matrix = np.matmul(candidate_document_vectors, query_embedding)
+        scores_matrix = np.matmul(candidate_document_vectors, query_embedding.T)
         doc_scores_sorted = np.argsort(scores_matrix, axis=0)
         topk_documents_local = doc_scores_sorted[-k:][::-1]
         # NOTE: map the "cluster-local" document indexes to the "global" document indexes
@@ -92,11 +90,17 @@ class QueryProcessorClustering:
     def process_queries(self, queries: list[str], k: int):
         self.queries = queries
         self.k = k
+
+        self.query_embeddings = self.model.encode(queries, convert_to_numpy=True)
+        centroid_scores_for_all_queries = np.matmul(self.centroid_matrix, self.query_embeddings.T)
+        centroid_scores_sorted = np.argsort(centroid_scores_for_all_queries, axis=0)
+        # t is the number of candidate clusters
+        self.top_centroids_matrix = centroid_scores_sorted[-self.t:][::-1].T
     
     def get_query_top_docs(self, query_index: int):
         if self.queries is None or self.k is None:
             raise RuntimeError("get_query_top_docs called before process_queries. Provide the query list with process_queries first.")
-        return self._process_query(self.queries[query_index], self.k)
+        return self._process_query(query_index, self.k)
 
 if __name__ == "__main__":
     queries = pd.read_csv("small_queries.csv")
