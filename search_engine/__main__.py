@@ -78,8 +78,8 @@ if __name__ == "__main__":
 
     if bench:
         if args.clustering:
-            # queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
-            queryProcessor = QueryProcessorClustering("doc_vectors_BIG", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
+            queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
+            # queryProcessor = QueryProcessorClustering("doc_vectors_BIG", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
             queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
             expected_results = pd.read_csv("dev_query_results.csv")
             query_limit = 1000 # The assigment says we may cut off at 1000 queries for Part 2
