@@ -78,20 +78,23 @@ if __name__ == "__main__":
 
     if bench:
         if args.clustering:
-            queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
-            # queryProcessor = QueryProcessorClustering("doc_vectors_BIG", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
+            # queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
+            queryProcessor = QueryProcessorClustering("doc_vectors_BIG", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
             queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
             expected_results = pd.read_csv("dev_query_results.csv")
+            query_limit = 1000 # The assigment says we may cut off at 1000 queries for Part 2
         else:
             queryProcessor = QueryProcessor("doc_vectors.npy", "all-MiniLM-L6-v2")
             queries_csv = pd.read_csv("dev_small_queries.csv")
             expected_results = pd.read_csv("dev_query_results_small.csv")
+            query_limit = None # no query limit for Part 1
 
         queries : list[tuple[int,str]] = []
         for (query_id, query) in queries_csv.itertuples(index=False):
             queries.append((query_id, query))
         # NOTE: sort the queries based on query_id to ensure deterministic query order across multiple runs
         queries.sort(key=lambda p: p[0])
+        queries = queries[:query_limit]
 
         print("Scoring the documents...")
         queryProcessor.process_queries([query for (query_id, query) in queries], k=10)
