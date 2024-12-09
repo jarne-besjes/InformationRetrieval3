@@ -15,6 +15,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+k_map = {0: 1, 1:3, 2:5, 3: 10}
+
 
 argparser = argparse.ArgumentParser(description='Information retrieval project 3')
 argparser.add_argument('--query', type=str, help='The query to search for')
@@ -25,24 +27,19 @@ argparser.add_argument('--docs-folder', type=str, help='The location of the fold
 argparser.add_argument('--mode', type=str, help='Select mode: search or bench', required=True)
 argparser.add_argument('--clustering', action='store_true', help='Use clustering (for preprocessing & querying)')
 
-def calculate_precision_at_k(retrieved, relevant, k):
+def presision_at_k(retrieved, relevant, k):
     count = 0
-    sum = 0
     for i in range(1, k+1):
         if i <= len(retrieved) and retrieved[i - 1] in relevant:
             count += 1
-            sum += count / i
-    return sum / count if count > 0 else 0
+    return count / k if count > 0 else 0
 
-
-def calculate_recall_at_k(retrieved, relevant, k):
+def recall_at_k(retrieved, relevant, k):
     count = 0
-    sum = 0
     for i in range(1, k+1):
         if i <= len(retrieved) and retrieved[i - 1] in relevant:
             count += 1
-            sum += count / len(relevant)
-    return sum / count if count > 0 else 0
+    return count / len(relevant) if count > 0 else 0
 
 if __name__ == "__main__":
     try:
@@ -104,24 +101,21 @@ if __name__ == "__main__":
         print("Scoring the documents...")
         queryProcessor.process_queries([query for (query_id, query) in queries], k=10)
 
-        avg_precisions = [[], []]
-        avg_recalls = [[], []]
+        avg_precisions = [[], [], [], []]
+        avg_recalls = [[], [], [], []]
 
         for query_i in tqdm(range(0, len(queries)), desc="Calculating precisions and recalls..."):
             query_id = queries[query_i][0]
             query_str = queries[query_i][1]
             retrieved_maxk = queryProcessor.get_query_top_docs(query_i)
-            for ki, k in enumerate([3, 10]):
-                relevant = expected_results[expected_results["Query_number"] == query_id]["doc_number"].to_list()
-                retrieved = retrieved_maxk[:k]
-                apk = calculate_precision_at_k(retrieved, relevant, k=k)
-                ark = calculate_recall_at_k(retrieved, relevant, k=k)
-                avg_precisions[ki].append(apk)
-                avg_recalls[ki].append(ark)
+            expected = expected_results[expected_results["Query_number"] == query_id]["doc_number"].values
+            for i in range(4):
+                avg_precisions[i].append(presision_at_k(retrieved_maxk, expected, k_map[i]))
+                avg_recalls[i].append(recall_at_k(retrieved_maxk, expected, k_map[i]))
 
-        for i in range(2):
-            print(f"Mean avg precision at {3 if i == 0 else 10}: ", np.mean(avg_precisions[i]))
-            print(f"Mean avg recall at {3 if i == 0 else 10}: ", np.mean(avg_recalls[i]))
+        for i in range(4):
+            print(f"Avg precision at {k_map[i]}: ", np.mean(avg_precisions[i]))
+            print(f"Avg recall at {k_map[i]}: ", np.mean(avg_recalls[i]))
     else:
         # search
         queryProcessor = QueryProcessor(index_folder)
