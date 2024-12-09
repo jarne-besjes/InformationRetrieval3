@@ -4,8 +4,8 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer
 
 class QueryProcessor:
-    def __init__(self, doc_vectors_path: str, model: str):
-        self.doc_matrix = np.load(doc_vectors_path)
+    def __init__(self, doc_vectors_folder_path: str, model: str):
+        self.doc_matrix = np.load(f"{doc_vectors_folder_path}/document_embeddings.npy")
         self.model = SentenceTransformer(model)
         self.document_rankings = None
 
@@ -62,7 +62,7 @@ class QueryProcessor:
 
 class QueryProcessorClustering:
     def __init__(self, index_path: str, model: str, clusters_to_evaluate: int = 3):
-        self.centroid_matrix = np.load(f"{index_path}/centroids.npy")
+        self.centroid_matrix = np.load(f"{index_path}/cluster_data/centroids.npy")
         self.model = SentenceTransformer(model)
         self.queries = None # filled in with process_queries
         self.k = None # filled in with process_queries
@@ -71,8 +71,8 @@ class QueryProcessorClustering:
         self.clusters = []
         self.cluster_doc_ids = []
         for ci in range(0, cluster_count):
-            self.clusters.append(np.load(f"{index_path}/cluster_{ci}.npy"))
-            self.cluster_doc_ids.append(np.load(f"{index_path}/cluster_doc_ids_{ci}.npy"))
+            self.clusters.append(np.load(f"{index_path}/cluster_data/cluster_{ci}.npy"))
+            self.cluster_doc_ids.append(np.load(f"{index_path}/cluster_data/cluster_doc_ids_{ci}.npy"))
     
     def _process_query(self, query_index: int, k: int):
         query_embedding = self.query_embeddings[query_index]

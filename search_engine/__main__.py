@@ -70,7 +70,12 @@ if __name__ == "__main__":
 
     if not args.no_index:
         output_path = "./doc_vectors"
-        if not os.path.exists(output_path) or args.reindex:
+        
+        indexing_needed =   args.reindex or \
+                            (not os.path.exists(output_path)) or \
+                            (args.clustering and not os.path.exists(f"{output_path}/cluster_data"))
+
+        if indexing_needed:
             print('Preprocessing documents...', file=sys.stderr)
             vectorizer = documentVectorizer.DocumentVectorizer("all-MiniLM-L6-v2", output_path)
             vectorizer.compute_doc_matrix(docs_folder, clustering=args.clustering)
@@ -78,13 +83,13 @@ if __name__ == "__main__":
 
     if bench:
         if args.clustering:
-            queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
+            queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2", clusters_to_evaluate=5)
             # queryProcessor = QueryProcessorClustering("doc_vectors_BIG", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
             queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
             expected_results = pd.read_csv("dev_query_results.csv")
             query_limit = 1000 # The assigment says we may cut off at 1000 queries for Part 2
         else:
-            queryProcessor = QueryProcessor("doc_vectors.npy", "all-MiniLM-L6-v2")
+            queryProcessor = QueryProcessor("doc_vectors", "all-MiniLM-L6-v2")
             queries_csv = pd.read_csv("dev_small_queries.csv")
             expected_results = pd.read_csv("dev_query_results_small.csv")
             query_limit = None # no query limit for Part 1
