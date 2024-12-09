@@ -14,6 +14,7 @@ from search_engine.search.queryProcessor import QueryProcessor, QueryProcessorCl
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from search_engine import vars
 
 k_map = {0: 1, 1:3, 2:5, 3: 10}
 
@@ -80,11 +81,11 @@ if __name__ == "__main__":
 
     if bench:
         if args.clustering:
-            queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2", clusters_to_evaluate=5)
+            queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2", clusters_to_evaluate=vars.CLUSTERS_TO_EVALUATE)
             # queryProcessor = QueryProcessorClustering("doc_vectors_BIG", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
             queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
             expected_results = pd.read_csv("dev_query_results.csv")
-            query_limit = 1000 # The assigment says we may cut off at 1000 queries for Part 2
+            query_limit = vars.QUERY_LIMIT # The assigment says we may cut off at 1000 queries for Part 2
         else:
             queryProcessor = QueryProcessor("doc_vectors", "all-MiniLM-L6-v2")
             queries_csv = pd.read_csv("dev_small_queries.csv")
