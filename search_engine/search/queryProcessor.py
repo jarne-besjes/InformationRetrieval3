@@ -51,7 +51,7 @@ class QueryProcessor:
 if __name__ == "__main__":
     queries = pd.read_csv("small_queries.csv")
     results = pd.read_csv("results_small.csv")
-    queryProcessor = QueryProcessor("doc_vectors.npz", "all-MiniLM-L6-v2")
+    queryProcessor = QueryProcessor("doc_vectors.npy", "all-MiniLM-L6-v2")
     for query_id, query in queries.itertuples(index=False):
         doc_ids = queryProcessor.process_query(query, 10)
         expected = results[results["Query_number"] == query_id]["doc_number"].values

@@ -1,5 +1,5 @@
 """
-Information retrieval project 1
+Information retrieval project 3
 
 Authors: Jarne Besjes, Kobe De Broeck, Liam Leirs
 """

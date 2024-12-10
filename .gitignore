@@ -1,3 +1,4 @@
 full_docs_small/
 *.npz
 *.npy
+*.csv
