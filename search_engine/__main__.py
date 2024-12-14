@@ -71,7 +71,7 @@ if __name__ == "__main__":
     query = args.query
     n = args.n
     docs_folder = args.docs_folder
-    index_folder = docs_folder.rstrip("/") + "_index"
+    index_folder = docs_folder.rstrip("/") + "_embeddings"
     mode = args.mode
 
     if mode == "bench":
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if not args.no_index:
-        output_path = "./doc_vectors"
+        output_path = index_folder
         
         indexing_needed =   args.reindex or \
                             (not os.path.exists(output_path)) or \
@@ -100,13 +100,13 @@ if __name__ == "__main__":
 
     if bench:
         if args.clustering:
-            queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2", clusters_to_evaluate=vars.CLUSTERS_TO_EVALUATE)
+            queryProcessor = QueryProcessorClustering(index_folder, "all-MiniLM-L6-v2", clusters_to_evaluate=vars.CLUSTERS_TO_EVALUATE)
             # queryProcessor = QueryProcessorClustering("doc_vectors_BIG", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
             queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
             expected_results = pd.read_csv("dev_query_results.csv")
             query_limit = vars.QUERY_LIMIT # The assigment says we may cut off at 1000 queries for Part 2
         else:
-            queryProcessor = QueryProcessor("doc_vectors", "all-MiniLM-L6-v2")
+            queryProcessor = QueryProcessor(index_folder, "all-MiniLM-L6-v2")
             queries_csv = pd.read_csv("dev_small_queries.csv")
             expected_results = pd.read_csv("dev_query_results_small.csv")
             query_limit = None # no query limit for Part 1
