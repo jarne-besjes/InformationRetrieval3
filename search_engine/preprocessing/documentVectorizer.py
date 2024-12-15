@@ -20,25 +20,39 @@ class DocumentVectorizer:
         self.model = SentenceTransformer(model)
         self.out_path = out_path
 
+    def split_into_windows(self, text, window_size=512, step=256):
+        """Splits text into overlapping windows."""
+        tokens = text.split()  # Use simple whitespace-based tokenization for demonstration
+        windows = []
+        for i in range(0, len(tokens), step):
+            window = tokens[i:i + window_size]
+            if window:  # Avoid adding empty windows
+                windows.append(" ".join(window))
+        return windows
+
+    def pool_embeddings(self, document_windows_embeddings, window_counts):
+        return np.mean(document_windows_embeddings, axis=0)
     def compute_doc_matrix(self, directory: str, clustering: bool = False) -> np.matrix:
-        documents = []
         document_count = count_txt_files_in_folder(directory)
-        for i in tqdm(range(1, document_count+1), desc="Reading documents..."):
+        doc_embeddings = []
+        for i in tqdm(range(1, document_count+1), desc="Encoding documents..."):
             with open(f"{directory}/output_{i}.txt") as file:
                 text = file.read()
-                documents.append(text)
-        
-        print("Encoding documents...")
-        encoding_start_time = time.time()
-        document_embeddings = self.model.encode(documents, convert_to_numpy=True)
-        print(f"Done encoding documents. Elapsed: {(time.time() - encoding_start_time):.2f} seconds")
+            windows = self.split_into_windows(text)
+            embeddings = []
+            for window in windows:
+                window = self.model.encode(window, convert_to_numpy=True)
+                embeddings.append(window)
+                doc_embedding = self.pool_embeddings(embeddings, [len(embeddings)])
+            doc_embeddings.append(doc_embedding)
+
 
         os.makedirs(self.out_path, exist_ok=True)
-        
-        np.save(f"{self.out_path}/document_embeddings.npy", document_embeddings)
+        doc_embeddings = np.array(doc_embeddings)
+        np.save(f"{self.out_path}/document_embeddings.npy", doc_embeddings)
 
         if clustering:
-            self.do_clustering(document_embeddings, 10)
+            self.do_clustering(doc_embeddings, 10)
     
     def do_clustering(self, document_embeddings, cluster_count: int):
         print("Clustering...")

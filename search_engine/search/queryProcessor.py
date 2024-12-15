@@ -29,7 +29,7 @@ class QueryProcessor:
     def get_query_top_docs(self, query_index: int):
         if self.document_rankings is None:
             raise RuntimeError("get_query_top_docs called before process_queries. Provide the query list with process_queries first.")
-        return self.document_rankings[query_index]
+        return self.document_rankings[query_index].tolist()
 
     # private methods
     # ------------------
