@@ -13,15 +13,18 @@ class DocumentVectorizer:
         self.model = SentenceTransformer(model)
         self.out_path = out_path
 
-    def split_docs(self, text: str):
-        max_length = self.model.tokenizer.model_max_length
-        parts = [text[i: i+max_length] for i in range(0, len(text), max_length)]
-        tokens = [token for part in parts for token in self.model.tokenizer.encode(part, truncation=False, add_special_tokens=False)]
-        chunks = [tokens[i: i+max_length] for i in range(0, len(tokens), max_length)]
-        return [self.model.tokenizer.decode(chunk, skip_special_tokens=True) for chunk in chunks]
+    def split_into_windows(self, text, window_size=512, step=256):
+        """Splits text into overlapping windows."""
+        tokens = text.split()  # Use simple whitespace-based tokenization for demonstration
+        windows = []
+        for i in range(0, len(tokens), step):
+            window = tokens[i:i + window_size]
+            if window:  # Avoid adding empty windows
+                windows.append(" ".join(window))
+        return windows
 
     def generate_doc_embedding(self, text: str):
-        chunks = self.split_docs(text)
+        chunks = self.split_into_windows(text)
         embeddings = self.model.encode(chunks)
         doc_embedding = np.mean(embeddings, axis=0)
         return doc_embedding
