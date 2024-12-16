@@ -41,14 +41,16 @@ class DocumentVectorizer:
         for i in tqdm(range(1, document_count + 1), desc="Encoding documents..."):
             with open(f"{directory}/output_{i}.txt") as file:
                 text = file.read()
+            if text == '':
+                text = 'F'
             windows = self.split_into_windows(text)
             embeddings = []
             for window in windows:
                 window = self.model.encode(window, convert_to_numpy=True)
                 embeddings.append(window)
-                doc_embedding = self.pool_embeddings(embeddings)
+            doc_embedding = self.pool_embeddings(embeddings)
             doc_embeddings.append(doc_embedding)
-
+        
         os.makedirs(self.out_path, exist_ok=True)
         doc_embeddings = np.array(doc_embeddings)
         np.save(f"{self.out_path}/document_embeddings.npy", doc_embeddings)
