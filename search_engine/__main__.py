@@ -28,25 +28,7 @@ argparser.add_argument('--docs-folder', type=str, help='The location of the fold
 argparser.add_argument('--mode', type=str, help='Select mode: search or bench', required=True)
 argparser.add_argument('--clustering', action='store_true', help='Use clustering (for preprocessing & querying)')
 
-def calculate_precision_at_k(retrieved, relevant, k):
-    count = 0
-    sum = 0
-    for i in range(1, k+1):
-        if i <= len(retrieved) and retrieved[i - 1] in relevant:
-            count += 1
-            sum += count / i
-    return sum / count if count > 0 else 0
-
-
-def calculate_recall_at_k(retrieved, relevant, k):
-    count = 0
-    sum = 0
-    for i in range(1, k+1):
-        if i <= len(retrieved) and retrieved[i - 1] in relevant:
-            count += 1
-            sum += count / len(relevant)
-    return sum / count if count > 0 else 0
-def presision_at_k(retrieved, relevant, k):
+def precision_at_k(retrieved, relevant, k):
     count = 0
     for i in range(1, k+1):
         if i <= len(retrieved) and retrieved[i - 1] in relevant:
@@ -60,6 +42,25 @@ def recall_at_k(retrieved, relevant, k):
             count += 1
     return count / len(relevant) if count > 0 else 0
 
+def average_precision_at_k(retrieved, relevant, k):
+    count = 0
+    sum = 0
+    for i in range(1, k+1):
+        if i <= len(retrieved) and retrieved[i - 1] in relevant:
+            count += 1
+            sum += count / i
+    return sum / count if count > 0 else 0
+
+
+def average_recall_at_k(retrieved, relevant, k):
+    count = 0
+    sum = 0
+    for i in range(1, k+1):
+        if i <= len(retrieved) and retrieved[i - 1] in relevant:
+            count += 1
+            sum += count / len(relevant)
+    return sum / count if count > 0 else 0
+
 if __name__ == "__main__":
     try:
         args = argparser.parse_args()
@@ -70,7 +71,7 @@ if __name__ == "__main__":
     query = args.query
     n = args.n
     docs_folder = args.docs_folder
-    index_folder = docs_folder.rstrip("/") + "_index"
+    index_folder = docs_folder.rstrip("/") + "_embeddings"
     mode = args.mode
 
     if mode == "bench":
@@ -85,7 +86,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if not args.no_index:
-        output_path = "./doc_vectors"
+        output_path = index_folder
         
         indexing_needed =   args.reindex or \
                             (not os.path.exists(output_path)) or \
@@ -99,13 +100,13 @@ if __name__ == "__main__":
 
     if bench:
         if args.clustering:
-            queryProcessor = QueryProcessorClustering("doc_vectors", "all-MiniLM-L6-v2", clusters_to_evaluate=vars.CLUSTERS_TO_EVALUATE)
+            queryProcessor = QueryProcessorClustering(index_folder, "all-MiniLM-L6-v2", clusters_to_evaluate=vars.CLUSTERS_TO_EVALUATE)
             # queryProcessor = QueryProcessorClustering("doc_vectors_BIG", "all-MiniLM-L6-v2", clusters_to_evaluate=3)
             queries_csv = pd.read_csv("dev_queries.tsv", sep='\t')
-            expected_results = pd.read_csv("dev_query_results_small.csv")
+            expected_results = pd.read_csv("dev_query_results.csv")
             query_limit = vars.QUERY_LIMIT # The assigment says we may cut off at 1000 queries for Part 2
         else:
-            queryProcessor = QueryProcessor("doc_vectors", "all-MiniLM-L6-v2")
+            queryProcessor = QueryProcessor(index_folder, "all-MiniLM-L6-v2")
             queries_csv = pd.read_csv("dev_small_queries.csv")
             expected_results = pd.read_csv("dev_query_results_small.csv")
             query_limit = None # no query limit for Part 1
@@ -122,22 +123,27 @@ if __name__ == "__main__":
 
         avg_precisions = [[], [], [], []]
         avg_recalls = [[], [], [], []]
+        precisions = [[], [], [], []]
+        recalls = [[], [], [], []]
 
         for query_i in tqdm(range(0, len(queries)), desc="Calculating precisions and recalls..."):
             query_id = queries[query_i][0]
             query_str = queries[query_i][1]
             retrieved_maxk = queryProcessor.get_query_top_docs(query_i)
-            for ki, k in enumerate([1,3,5, 10]):
-                relevant = expected_results[expected_results["Query_number"] == query_id]["doc_number"].to_list()
-                retrieved = retrieved_maxk[:k]
-                apk = calculate_precision_at_k(retrieved, relevant, k)
-                ark = calculate_recall_at_k(retrieved, relevant, k=k)
-                avg_precisions[ki].append(apk)
-                avg_recalls[ki].append(ark)
+            expected = expected_results[expected_results["Query_number"] == query_id]["doc_number"].values
+            for i in range(4):
+                precisions[i].append(precision_at_k(retrieved_maxk, expected, k_map[i]))
+                recalls[i].append(recall_at_k(retrieved_maxk, expected, k_map[i]))
+                avg_precisions[i].append(average_precision_at_k(retrieved_maxk, expected, k_map[i]))
+                avg_recalls[i].append(average_recall_at_k(retrieved_maxk, expected, k_map[i]))
 
         for i in range(4):
-            print(f"Mean avg precision at {k_map[i]}: ", np.mean(avg_precisions[i]))
-            print(f"Mean avg recall at {k_map[i]}: ", np.mean(avg_recalls[i]))
+            print(f"Avg precision at {k_map[i]}: ", np.mean(precisions[i]))
+            print(f"Avg recall at {k_map[i]}: ", np.mean(recalls[i]))
+        print("----------------------------")
+        for i in range(4):
+            print(f"Mean Avg precision at {k_map[i]}: ", np.mean(avg_precisions[i]))
+            print(f"Mean Avg recall at {k_map[i]}: ", np.mean(avg_recalls[i]))
     else:
         # search
         queryProcessor = QueryProcessor(index_folder)
